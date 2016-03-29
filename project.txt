@@ -1,0 +1,504 @@
+#include <iostream>
+#include <cctype>
+#include <string>
+#include <cstring>
+#include <fstream>
+#include <Windows.h>
+#include <conio.h>
+
+using namespace std;
+  ////////global variable///////
+int global;                          
+int chk=0;
+/////////////////////////GOTOXY FUNCTION TO MOVE CURSOR TO SPECIFIC CO-ordinate///////////////
+void gotoxy(int, int);
+void printbox();
+/////////////// ARRY CLASS TO STORE MEANING//////////////////////////
+class arrymean
+{
+private:
+	int index;
+	string *meaning;
+public:
+	//constructor//
+	arrymean(int i)
+	{
+		meaning=new string[i];                 // creating dynamic string array//
+			for(int j=0;j<i;j++)
+				{
+					meaning[j]="0";
+				}
+	}
+	// store meaning at specific index//
+	void getmeaning (int key,string value)
+	{
+		meaning[key]=value;
+		
+	}
+	////////display function////////////
+	void display(int ky)
+	{   gotoxy(25,16);
+		cout<<"Meaning of Word"<<endl<<endl;
+		gotoxy(25,17);
+		cout<<meaning[ky]<<endl;
+	
+	}
+
+};
+
+////////////////////////class tries/////////////////////// 
+class trie
+{
+public:
+	
+	string glob;
+	////////////////structure of trie class/////////////////
+        struct node
+        {
+            char  character;       
+            int key;
+			bool  eow;             
+           node* edge[26];   
+			
+        }
+		*root;                       
+ ////////////////Trie class prototypes/////////////////////////
+        void preorder_display(node *,string, bool);
+        void truncate_node(node *);   
+        void preorderdisplay(node* );
+	 	bool searchword(char* );
+		void getkey(int);	
+		void insert_word(char* ,int);  
+	    bool search_word(string);
+        trie();                       
+	   ~trie();  
+		
+}; 
+trie::trie()
+{
+    root = new node();
+    root->character = '\0';
+    root->key=0;
+    root->eow = false;
+    
+	for(int i=0;i<26;i++)
+    {
+        root->edge[i] = NULL;
+    }
+}
+ 
+trie::~trie()
+{
+    truncate_node(root);
+}
+ 
+
+void trie::truncate_node(node* n)
+{
+    for(int i=0;i<26;i++)
+    {
+        if(n->edge[i] != NULL)
+        {
+            truncate_node(n->edge[i]);
+        }
+    }
+    delete n;
+}
+ ////////////////// insert function/////////////////////////
+void trie::insert_word(char *s,int val)
+{
+	root->character='\0';
+    node *t = root; ////////node type pointer pointing to root at start
+	
+    while(*s != '\0')
+    {
+	   int c = toupper(*s) - 'A';/////////////////set pointer position on the basis of ascii value///////
+		
+		if(c>=0&&c<=26)
+		{
+		
+			if(t->edge[c] == NULL)//////////check if node is present or not/////////////////
+            {
+				 node* n = new node();//adding nwe node
+				 n->character = *s;
+				 n->eow = false;
+ 
+		           for(int i=0;i<26;i++)
+				    {
+					 n->edge[i] = NULL; //assgining NULL to all poniter of new node//
+					}
+				t->edge[c] = n;
+				t = n;
+            }
+        else
+        
+		{
+            t = t->edge[c];//IF node is present move to next //
+        
+        }
+       *s++;
+		}
+		else
+		
+			*s++;	
+		}
+	
+	  t->eow = true;//puting end of word marker//
+	
+		if(t->eow==true)
+			{
+				t->key=val;
+			}
+	
+	}
+
+bool trie::search_word(string val)
+{
+	node *t = root;
+	for(int i=0;i<val.length();i++)
+   { 
+	   
+	   
+	     int c = toupper(val[i]) - 'A';
+        if(t->edge[c] == NULL)
+        {
+            return false ;
+        }
+        else
+        {
+            t = t->edge[c];
+		}     
+	 if(i==val.length()-1)
+		{ t->eow=true;}
+	}
+	///////////////////check if End of word is true/////////////
+	if(t->eow == true)
+	{ 
+		getkey(t->key);
+	    return true ;
+    }
+    else
+	return false;
+	
+	}
+//////////////search word/////////////////////////
+ bool trie::searchword(char* s)
+{
+    node *t = root;
+    while(*s != '\0')
+    {
+        int c = toupper(*s) - 'A';
+        if(t->edge[c] == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            t = t->edge[c];
+			
+	    }
+        *s++;
+    }
+
+	if(glob.length() > 1)
+	{
+		t->eow = false;
+		preorder_display(t,"", 0);
+	}
+    if(t->eow == true)
+	return true ;
+	
+    else
+	return false;
+	
+	
+}
+ void trie::getkey(int value)
+ { 
+	 global=value;
+	
+ }
+
+ //////////////traversal in trie to show suggestion list////////////////////
+void trie::preorder_display(node* t, string str, bool ck)
+{
+	if (t == NULL)
+		return;
+	/////////if eow comes print that word///////////
+	if (t->eow)
+	{
+		 
+		cout<<endl;
+		cout<<"                        " <<glob + str + t->character << endl;
+		return;
+	}
+
+	for (int i = 0; i < 26; i++)
+		if (t->edge[i] != NULL)  ////////checking the next node with character///
+		{
+			if (ck)
+				preorder_display(t->edge[i], str + t->character, 1);
+
+			else
+				preorder_display(t->edge[i], str, 1); //recursive call for traversal//
+		}
+		
+    }
+/////////hide cursor function////////////
+void hidecursor()
+{
+   HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+   CONSOLE_CURSOR_INFO info;
+   info.dwSize = 100;
+   info.bVisible = false;
+   SetConsoleCursorInfo(consoleHandle, &info);
+}
+////////////set window size////////////////
+void SetWindowSize(int Width, int Height) 
+{ 
+    _COORD coord; 
+    coord.X = Width; 
+    coord.Y = Height; 
+
+    _SMALL_RECT Rect; 
+    Rect.Top = 0; 
+    Rect.Left = 0; 
+    Rect.Bottom = Height - 1; 
+    Rect.Right = Width - 1; 
+
+    HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);      // Get Handle 
+    SetConsoleScreenBufferSize(Handle, coord);            // Set Buffer Size 
+    SetConsoleWindowInfo(Handle, TRUE, &Rect);            // Set Window Size 
+}
+///////////////////////////////////////////////////main function/////////////////////////////////////////////////////////////
+int main()
+{   
+	hidecursor();//////////////console hide funtion call///////////
+	system("title Dictionary");
+	system("color f9");
+    SetWindowSize(120,200);
+	
+	gotoxy(4,0);
+	cout<<"########  ####  ######  ######## ####  #######  ##    ##    ###    ########  ##    ## "<<endl;
+	gotoxy(4,1);
+	cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ###   ##   ## ##   ##     ##  ##  ##  "<<endl;
+	gotoxy(4,2);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ####  ##  ##   ##  ##     ##   ####   "<<endl;
+	gotoxy(4,3);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ## ## ## ##     ## ########     ##    "<<endl;
+	gotoxy(4,4);
+	 cout<<"##     ##  ##  ##          ##     ##  ##     ## ##  #### ######### ##   ##      ##    "<<endl;
+	gotoxy(4,5);
+	cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ##   ### ##     ## ##    ##     ##    "<<endl;
+	gotoxy(4,6);
+	cout<<"########  ####  ######     ##    ####  #######  ##    ## ##     ## ##     ##    ##    "<<endl;
+	gotoxy(4,7);
+	cout<<"________________________________________________________________________________________"<<endl;
+	
+ 
+    trie mytrie;//creating object of tries class
+	fstream file;// creating file object to read the file
+
+	file.open("newword.txt");
+	string word;
+	int j=0;
+	int b=0;
+	
+	while(file.eof()==false)
+	{
+		getline(file,word);
+		j++;
+	}
+	
+	file.close();
+	
+	arrymean obj(j);
+	string value;
+	///reading file///////
+	file.open("newword.txt");
+	cout<<"Loading ..."<<endl;
+	
+	while(!file.eof())
+	{
+	   getline(file,word);
+	   obj.getmeaning(b,word);
+       mytrie.insert_word(&word[0], b);
+		
+		b++;
+		if(file.eof()==true)
+		{
+			system("cls");
+			gotoxy(4,0);
+    cout<<"_______________________________________________________________________________________"<<endl;
+    gotoxy(4,1);
+	cout<<"########  ####  ######  ######## ####  #######  ##    ##    ###    ########  ##    ## "<<endl;
+	 gotoxy(4,2);
+	cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ###   ##   ## ##   ##     ##  ##  ##  "<<endl;
+	gotoxy(4,3);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ####  ##  ##   ##  ##     ##   ####   "<<endl;
+	gotoxy(4,4);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ## ## ## ##     ## ########     ##    "<<endl;
+	gotoxy(4,5);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ##  #### ######### ##   ##      ##    "<<endl;
+	gotoxy(4,6);
+	cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ##   ### ##     ## ##    ##     ##    "<<endl;
+	gotoxy(4,7);
+	cout<<"########  ####  ######     ##    ####  #######  ##    ## ##     ## ##     ##    ##    "<<endl;
+	gotoxy(4,8);
+	cout<<"_______________________________________________________________________________________"<<endl;
+		
+	    
+		}
+
+		
+	} //end of while
+		
+	char choice;
+	char ch;
+	string str;
+	gotoxy(26,15);
+	cout<<"PLEASE ENTER THE WORD"<<endl;
+	system("cls");
+	do 
+	{
+		while(true)
+			{
+		
+	gotoxy(4,0);
+	cout<<"_______________________________________________________________________________________"<<endl;
+	gotoxy(4,1);
+	cout<<"########  ####  ######  ######## ####  #######  ##    ##    ###    ########  ##    ## "<<endl;
+	gotoxy(4,2);
+	cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ###   ##   ## ##   ##     ##  ##  ##  "<<endl;
+	gotoxy(4,3);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ####  ##  ##   ##  ##     ##   ####   "<<endl;
+	gotoxy(4,4);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ## ## ## ##     ## ########     ##    "<<endl;
+	gotoxy(4,5);
+	 cout<<"##     ##  ##  ##          ##     ##  ##     ## ##  #### ######### ##   ##      ##    "<<endl;
+	gotoxy(4,6);
+	 cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ##   ### ##     ## ##    ##     ##    "<<endl;
+	gotoxy(4,7);
+	cout<<"########  ####  ######     ##    ####  #######  ##    ## ##     ## ##     ##    ##    "<<endl;
+	gotoxy(4,8);
+	  cout<<"_______________________________________________________________________________________"<<endl;
+	
+  
+	gotoxy(26,12);
+	////////geting input
+	ch=_getch();
+/////////checking for romve of character/////////
+	if (ch == 8)
+		{
+			cout << char(8);
+			system("cls");
+			str = str.erase(str.length() - 1, 1);
+			printbox();
+			mytrie.glob = str;
+			gotoxy(26,12);
+			cout<<str<<endl;
+			continue;
+		}
+
+	if (ch == '\n' || ch == '\r' || ch == '\n\r')
+		break;
+   
+		str+=ch;
+		system("cls");
+	
+	gotoxy(4,0);
+	cout<<"_______________________________________________________________________________________"<<endl;
+	gotoxy(4,1);
+	cout<<"########  ####  ######  ######## ####  #######  ##    ##    ###    ########  ##    ## "<<endl;
+	gotoxy(4,2);
+	cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ###   ##   ## ##   ##     ##  ##  ##  "<<endl;
+	gotoxy(4,3);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ####  ##  ##   ##  ##     ##   ####   "<<endl;
+	gotoxy(4,4);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ## ## ## ##     ## ########     ##    "<<endl;
+	gotoxy(4,5);
+	cout<<"##     ##  ##  ##          ##     ##  ##     ## ##  #### ######### ##   ##      ##    "<<endl;
+	gotoxy(4,6);
+	cout<<"##     ##  ##  ##    ##    ##     ##  ##     ## ##   ### ##     ## ##    ##     ##    "<<endl;
+	gotoxy(4,7);
+	cout<<"########  ####  ######     ##    ####  #######  ##    ## ##     ## ##     ##    ##    "<<endl;
+	gotoxy(4,8);
+	cout<<"_______________________________________________________________________________________"<<endl;
+	
+	printbox();
+	gotoxy(26, 12);
+	cout<<str << endl << endl;
+    mytrie.glob+=ch;////////apending string
+	int evl=0;
+	
+		if(ch>='a'&&ch<='z'||ch>='A'&&ch<='Z')
+			{
+				evl=1;
+
+			}
+	
+		if(evl==1)
+			{
+				(mytrie.searchword(&str[0]));
+			}
+		else
+			{
+				system("cls");
+				gotoxy(25,15);
+				cout<<"US00R PLOZZZZZZZZZZZZZZZZZ"<<endl;
+				break;
+			}
+	
+	gotoxy(0, 0);
+	gotoxy(str.length(), 6);
+
+
+	}
+	cout<<endl;
+    
+		if(mytrie.search_word (str)==true)
+			{
+				obj.display(global);
+			}
+		else
+			{
+				gotoxy(25,17);
+				cout<<"Word is Not Found"<<endl;
+			}
+	
+			gotoxy(25,18);
+			cout<<"Do you want to enter another word Y/N"<<endl;
+			cin>>choice;
+			system("cls");
+	
+			str="";
+			mytrie.glob="";
+
+	}
+	while(choice=='y');
+	
+	system("pause");
+	return 0;
+}
+/////end of main/////
+void gotoxy(int x, int y)
+{
+COORD coord;
+coord.X = x;
+coord.Y = y;
+SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+void printbox()
+{
+     gotoxy(25,10);
+	 cout<<"Enter the Word"<<endl;
+	   gotoxy(22,11);
+	cout<<"-----------------"<<endl;
+	  gotoxy(22,12);
+	cout<<"*		      *"<<endl;
+	 gotoxy(22,13);
+	cout<<"*		      *"<<endl;
+	  gotoxy(22,14);
+	cout<<"-----------------"<<endl;
+}
+
